@@ -1,1 +1,1 @@
-# channel-surfing
+#[ModKit Wiki](../../wiki)
