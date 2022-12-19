@@ -158,7 +158,7 @@ public class ChannelSurfingScript : MonoBehaviour {
                             c = (b == (colselect[0] == colselect[1])) ^ majordefects[1];
                         if (c && !majordefects[0])
                         {
-                            if (ch == 399)
+                            if (ch == ((TwitchPlaysActive && !autosolved) ? 199 : 399))
                                 Solve();
                             else
                             {
@@ -167,7 +167,7 @@ public class ChannelSurfingScript : MonoBehaviour {
                                 if (ch > 5 * (level + 1) * (level + 3) && level < 6)
                                     level++;
                                 displays[2].text = "CHANNEL: #" + ch;
-                                if (combotime >= (TwitchPlaysActive ? 2 : 1) && combo[0] < 12)
+                                if (combotime >= ((TwitchPlaysActive && !autosolved) ? 2 : 1) && combo[0] < 12)
                                     combo[0]++;
                                 if (combo[0] > 0 && combo[0] % 4 == 0 && combo[1] < combo[0])
                                 {
@@ -175,7 +175,7 @@ public class ChannelSurfingScript : MonoBehaviour {
                                     displays[(combo[0] / 4) + 2].text = "+";
                                     Audio.PlaySoundAtTransform("Combo", transform);
                                 }
-                                time += (TwitchPlaysActive ? 14 : 4) + ((combo[0] / 4) * 2f);
+                                time += ((TwitchPlaysActive && !autosolved) ? 14 : 4) + ((combo[0] / 4) * 2f);
                                 if (time >= 180f)
                                 {
                                     time = 180f;
@@ -279,7 +279,7 @@ public class ChannelSurfingScript : MonoBehaviour {
 
     private IEnumerator Combo()
     {
-        combotime = (TwitchPlaysActive ? 10f : 2f);
+        combotime = (TwitchPlaysActive && !autosolved) ? 10f : 2f;
         while(combotime > 0)
         {
             if (!combopause)
@@ -334,7 +334,7 @@ public class ChannelSurfingScript : MonoBehaviour {
     private IEnumerator Denied()
     {
         combopause = true;
-        yield return new WaitForSeconds(2);
+        yield return new WaitForSeconds((TwitchPlaysActive && !autosolved) ? 8 : 2);
         majordefects[0] = false;
         Placeicons();
         combopause = false;
@@ -509,14 +509,15 @@ public class ChannelSurfingScript : MonoBehaviour {
     //twitch plays
     private int lastPressed = -1;
     private bool TwitchPlaysActive;
+    private bool autosolved;
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} press/p <left/l/right/r> (color) [Presses the left or right side of the module (optionally when the text color is 'color')] | !{0} highlight/h <left/l/right/r> [Highlights the left or right side of the module] | Highlights can be chained with spaces | If the next transmission error that occurs is an eye, then the last button pressed will not be automatically unhighlighted and must be manually dealt with using !{0} highlight/h <end/e> | On Twitch Plays some times are different, to view them use !{0} times";
+    private readonly string TwitchHelpMessage = @"!{0} press/p <left/l/right/r> (color) [Presses the left or right side of the module (optionally when the text color is 'color')] | !{0} highlight/h <left/l/right/r> [Highlights the left or right side of the module] | Highlights can be chained with spaces | If the next transmission error that occurs is an eye, then the last button pressed will not be automatically unhighlighted and must be manually dealt with using !{0} highlight/h <end/e> | On Twitch Plays some times/thresholds are different, to view them use !{0} changes";
     #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
-        if (command.EqualsIgnoreCase("times"))
+        if (command.EqualsIgnoreCase("changes"))
         {
-            yield return "sendtochat Correctly responding 4 -> 14 seconds | Combo meter increase 1 -> 8 seconds | Combo meter depletes 2 -> 10 seconds";
+            yield return "sendtochat Correctly responding 4 -> 14 seconds | Combo meter increase 1 -> 8 seconds | Combo meter depletes 2 -> 10 seconds | Red X transmission error time extended | Total channel count 399 -> 199";
             yield break;
         }
         string[] parameters = command.Split(' ');
@@ -644,6 +645,7 @@ public class ChannelSurfingScript : MonoBehaviour {
 
     IEnumerator TwitchHandleForcedSolve()
     {
+        autosolved = true;
         while (buttons[0].OnInteract == null || restart) yield return null;
         while (!moduleSolved)
         {
