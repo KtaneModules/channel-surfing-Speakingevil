@@ -164,7 +164,7 @@ public class ChannelSurfingScript : MonoBehaviour {
                             {
                                 ch++;
                                 qc[0] = false;
-                                if (ch > 5 * (level + 1) * (level + 3) && level < 6)
+                                if (ch > ((TwitchPlaysActive && !autosolved) ? 3 : 5) * (level + 1) * (level + ((TwitchPlaysActive && !autosolved) ? 1 : 3)) && level < 6)
                                     level++;
                                 displays[2].text = "CHANNEL: #" + ch;
                                 if (combotime >= ((TwitchPlaysActive && !autosolved) ? 2 : 1) && combo[0] < 12)
@@ -511,13 +511,46 @@ public class ChannelSurfingScript : MonoBehaviour {
     private bool TwitchPlaysActive;
     private bool autosolved;
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} press/p <left/l/right/r> (color) [Presses the left or right side of the module (optionally when the text color is 'color')] | !{0} highlight/h <left/l/right/r> [Highlights the left or right side of the module] | Highlights can be chained with spaces | If the next transmission error that occurs is an eye, then the last button pressed will not be automatically unhighlighted and must be manually dealt with using !{0} highlight/h <end/e> | On Twitch Plays some times/thresholds are different, to view them use !{0} changes";
+    private readonly string TwitchHelpMessage = @"!{0} press/p <left/l/right/r> (color) [Presses the left or right side of the module (optionally when the text color is 'color')] | !{0} boost [Boosts the signal for a lost signal transmission error] | If the next transmission error that occurs is an eye, then the last button pressed will not be automatically unhighlighted and must be manually dealt with using !{0} unhighlight/unh | On Twitch Plays some times/thresholds are different, to view them use !{0} changes";
     #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
         if (command.EqualsIgnoreCase("changes"))
         {
             yield return "sendtochat Correctly responding 4 -> 14 seconds | Combo meter increase 1 -> 8 seconds | Combo meter depletes 2 -> 10 seconds | Red X transmission error time extended | Total channel count 399 -> 199";
+            yield break;
+        }
+        if (command.EqualsIgnoreCase("boost"))
+        {
+            if (!majordefects[3])
+            {
+                yield return "sendtochaterror There is no lost signal transmission error present";
+                yield break;
+            }
+            yield return null;
+            while (majordefects[3])
+            {
+                int choice = Random.Range(0, 2);
+                buttons[choice].OnHighlight();
+                buttons[choice].OnHighlightEnded();
+                yield return new WaitForSeconds(.1f);
+            }
+            yield break;
+        }
+        if (command.ToLowerInvariant().EqualsAny("unhighlight", "unh"))
+        {
+            if (majordefects[3])
+            {
+                yield return "sendtochaterror Signal weak, please boost the signal first";
+                yield break;
+            }
+            if (!majordefects[2])
+            {
+                yield return "sendtochaterror There is no eye transmission error present";
+                yield break;
+            }
+            yield return null;
+            buttons[lastPressed].OnHighlightEnded();
             yield break;
         }
         string[] parameters = command.Split(' ');
@@ -593,51 +626,6 @@ public class ChannelSurfingScript : MonoBehaviour {
                             break;
                         }
                     }
-                }
-            }
-        }
-        else if (parameters[0].ToLowerInvariant().EqualsAny("h", "highlight"))
-        {
-            if (parameters.Length == 2)
-            {
-                if (parameters[1].ToLowerInvariant().EqualsAny("e", "end"))
-                {
-                    if (!majordefects[2])
-                    {
-                        yield return "sendtochaterror There is no eye transmission error present";
-                        yield break;
-                    }
-                    yield return null;
-                    buttons[lastPressed].OnHighlightEnded();
-                    yield break;
-                }
-            }
-            if (parameters.Length >= 2)
-            {
-                for (int i = 1; i < parameters.Length; i++)
-                {
-                    if (!parameters[1].ToLowerInvariant().EqualsAny("l", "left") && !parameters[1].ToLowerInvariant().EqualsAny("r", "right"))
-                        yield break;
-                }
-                if (majordefects[2])
-                {
-                    yield return "sendtochaterror Eye transmission error present, manually unhighlight first";
-                    yield break;
-                }
-                yield return null;
-                for (int i = 1; i < parameters.Length; i++)
-                {
-                    if (parameters[i].ToLowerInvariant().EqualsAny("l", "left"))
-                    {
-                        buttons[0].OnHighlight();
-                        buttons[0].OnHighlightEnded();
-                    }
-                    else
-                    {
-                        buttons[1].OnHighlight();
-                        buttons[1].OnHighlightEnded();
-                    }
-                    yield return new WaitForSeconds(.1f);
                 }
             }
         }
