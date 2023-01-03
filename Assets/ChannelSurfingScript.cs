@@ -158,16 +158,16 @@ public class ChannelSurfingScript : MonoBehaviour {
                             c = (b == (colselect[0] == colselect[1])) ^ majordefects[1];
                         if (c && !majordefects[0])
                         {
-                            if (ch == 999)
+                            if (ch == ((TwitchPlaysActive && !autosolved) ? 199 : 399))
                                 Solve();
                             else
                             {
                                 ch++;
                                 qc[0] = false;
-                                if (ch > 5 * (level + 1) * (level + 3) && level < 6)
+                                if (ch > ((TwitchPlaysActive && !autosolved) ? 3 : 5) * (level + 1) * (level + ((TwitchPlaysActive && !autosolved) ? 1 : 3)) && level < 6)
                                     level++;
                                 displays[2].text = "CHANNEL: #" + ch;
-                                if (combotime >= 1 && combo[0] < 12)
+                                if (combotime >= ((TwitchPlaysActive && !autosolved) ? 2 : 1) && combo[0] < 12)
                                     combo[0]++;
                                 if (combo[0] > 0 && combo[0] % 4 == 0 && combo[1] < combo[0])
                                 {
@@ -175,7 +175,7 @@ public class ChannelSurfingScript : MonoBehaviour {
                                     displays[(combo[0] / 4) + 2].text = "+";
                                     Audio.PlaySoundAtTransform("Combo", transform);
                                 }
-                                time += 4 + ((combo[0] / 4) * 2f);
+                                time += ((TwitchPlaysActive && !autosolved) ? 14 : 4) + ((combo[0] / 4) * 2f);
                                 if (time >= 180f)
                                 {
                                     time = 180f;
@@ -279,7 +279,7 @@ public class ChannelSurfingScript : MonoBehaviour {
 
     private IEnumerator Combo()
     {
-        combotime = 2f;
+        combotime = (TwitchPlaysActive && !autosolved) ? 10f : 2f;
         while(combotime > 0)
         {
             if (!combopause)
@@ -307,7 +307,7 @@ public class ChannelSurfingScript : MonoBehaviour {
             displays[0].color = cols[colselect[1]];
         while (majordefects[4])
         {
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(0.66f);
             if (question > 2 && qc[1] && Random.Range(0, 3) == 0)
             {
                 qc[1] = false;
@@ -334,7 +334,7 @@ public class ChannelSurfingScript : MonoBehaviour {
     private IEnumerator Denied()
     {
         combopause = true;
-        yield return new WaitForSeconds(2);
+        yield return new WaitForSeconds((TwitchPlaysActive && !autosolved) ? 8 : 2);
         majordefects[0] = false;
         Placeicons();
         combopause = false;
@@ -504,5 +504,157 @@ public class ChannelSurfingScript : MonoBehaviour {
             s.SetActive(false);
         bg.material = bgmats[9];
         stat.SetActive(true);
+    }
+
+    //twitch plays
+    private int lastPressed = -1;
+    private bool TwitchPlaysActive;
+    private bool autosolved;
+    #pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"!{0} press/p <left/l/right/r> (color) [Presses the left or right side of the module (optionally when the text color is 'color')] | !{0} boost [Boosts the signal for a lost signal transmission error] | If the next transmission error that occurs is an eye, then the last button pressed will not be automatically unhighlighted and must be manually dealt with using !{0} unhighlight/unh | On Twitch Plays some times/thresholds are different, to view them use !{0} changes";
+    #pragma warning restore 414
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+        if (command.EqualsIgnoreCase("changes"))
+        {
+            yield return "sendtochat Correctly responding 4 -> 14 seconds | Combo meter increase 1 -> 8 seconds | Combo meter depletes 2 -> 10 seconds | Red X transmission error time extended | Total channel count 399 -> 199";
+            yield break;
+        }
+        if (command.EqualsIgnoreCase("boost"))
+        {
+            if (!majordefects[3])
+            {
+                yield return "sendtochaterror There is no lost signal transmission error present";
+                yield break;
+            }
+            yield return null;
+            while (majordefects[3])
+            {
+                int choice = Random.Range(0, 2);
+                buttons[choice].OnHighlight();
+                buttons[choice].OnHighlightEnded();
+                yield return new WaitForSeconds(.1f);
+            }
+            yield break;
+        }
+        if (command.ToLowerInvariant().EqualsAny("unhighlight", "unh"))
+        {
+            if (majordefects[3])
+            {
+                yield return "sendtochaterror Signal weak, please boost the signal first";
+                yield break;
+            }
+            if (!majordefects[2])
+            {
+                yield return "sendtochaterror There is no eye transmission error present";
+                yield break;
+            }
+            yield return null;
+            buttons[lastPressed].OnHighlightEnded();
+            yield break;
+        }
+        string[] parameters = command.Split(' ');
+        if (parameters[0].ToLowerInvariant().EqualsAny("p", "press"))
+        {
+            if (parameters.Length == 2)
+            {
+                if (parameters[1].ToLowerInvariant().EqualsAny("l", "left"))
+                {
+                    if (majordefects[3])
+                    {
+                        yield return "sendtochaterror Signal weak, please boost the signal first";
+                        yield break;
+                    }
+                    yield return null;
+                    buttons[0].OnHighlight();
+                    buttons[0].OnInteract();
+                    lastPressed = 0;
+                    if (!majordefects[2])
+                        buttons[0].OnHighlightEnded();
+                }
+                else if (parameters[1].ToLowerInvariant().EqualsAny("r", "right"))
+                {
+                    if (majordefects[3])
+                    {
+                        yield return "sendtochaterror Signal weak, please boost the signal first";
+                        yield break;
+                    }
+                    yield return null;
+                    buttons[1].OnHighlight();
+                    buttons[1].OnInteract();
+                    lastPressed = 1;
+                    if (!majordefects[2])
+                        buttons[1].OnHighlightEnded();
+                }
+            }
+            else if (parameters.Length == 3)
+            {
+                if (parameters[1].ToLowerInvariant().EqualsAny("l", "left") || parameters[1].ToLowerInvariant().EqualsAny("r", "right"))
+                {
+                    for (int i = 0; i < colnames.Length; i++)
+                    {
+                        if (colnames[i].EqualsIgnoreCase(parameters[2]))
+                        {
+                            if (majordefects[3])
+                            {
+                                yield return "sendtochaterror Signal weak, please boost the signal first";
+                                yield break;
+                            }
+                            if (!majordefects[4])
+                            {
+                                yield return "sendtochaterror There is no color cycling transmission error present";
+                                yield break;
+                            }
+                            yield return null;
+                            while (colselect[1] != i) yield return "trycancel";
+                            if (parameters[1].ToLowerInvariant().EqualsAny("l", "left"))
+                            {
+                                buttons[0].OnHighlight();
+                                buttons[0].OnInteract();
+                                lastPressed = 0;
+                                if (!majordefects[2])
+                                    buttons[0].OnHighlightEnded();
+                            }
+                            else
+                            {
+                                buttons[1].OnHighlight();
+                                buttons[1].OnInteract();
+                                lastPressed = 1;
+                                if (!majordefects[2])
+                                    buttons[1].OnHighlightEnded();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        autosolved = true;
+        while (buttons[0].OnInteract == null || restart) yield return null;
+        while (!moduleSolved)
+        {
+            while (majordefects[3])
+            {
+                int choice = Random.Range(0, 2);
+                buttons[choice].OnHighlight();
+                buttons[choice].OnHighlightEnded();
+                yield return new WaitForSeconds(.1f);
+            }
+            while (majordefects[0]) yield return null;
+            if (majordefects[4] && question > 2)
+            {
+                while (colselect[1] != prev) yield return null;
+                buttons[Random.Range(0, 2)].OnInteract();
+            }
+            else if ((colselect[0] == colselect[1] && !majordefects[1]) || (colselect[0] != colselect[1] && majordefects[1]))
+                buttons[0].OnInteract();
+            else
+                buttons[1].OnInteract();
+            yield return new WaitForSeconds(.1f);
+        }
     }
 }
