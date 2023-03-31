@@ -631,9 +631,14 @@ public class ChannelSurfingScript : MonoBehaviour {
         }
     }
 
-    IEnumerator TwitchHandleForcedSolve()
+    void TwitchHandleForcedSolve()
     {
         autosolved = true;
+        StartCoroutine(HandleAutosolve());
+    }
+
+    IEnumerator HandleAutosolve()
+    {
         while (buttons[0].OnInteract == null || restart) yield return null;
         while (!moduleSolved)
         {
